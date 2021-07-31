@@ -8,29 +8,33 @@
 public with sharing class TaskCreator {
         
     @InvocableMethod(label='Insert new Task', category='Task')
-    public static void task(List<Account> accounts) {
-        // 2) .... when new Account is created 
-        // как получить id Account'a, который только что создан? или можно как-то по-другому получить {Account.Name} ?               
-        
-        Task newTask = new Task(Subject='Negotiations with ' + Account.Name);
-        
+    public static void task(List<Id> ids) {
+        // 2) Apex class should make next logic: When new Account is created, 
+        // create new Task object with Subject “Negotiations with {Account.Name}”, 
+        // link created Account with this Task.
+        String accountName = [SELECT Name FROM Account WHERE Id in :ids];
+        String accountID = [SELECT Id FROM Account WHERE Id in :ids];
+        Task newTask = new Task(Subject='Negotiations with ' + accountName, WhatId=accountID);        
         insert newTask;
     
     
         // 3) If Account is updated - проверяет Process Builder в "Add Object"??    
-        
-        // and Account has more than 3 Tasks => assign all Tasks to one User (random active User)  
-        String userId = UserInfo.getUserId();
-        List<Task> taskList = [SELECT Id, Subject FROM Task];
-        List<Task> tasksToUpdate = new List<Task>();
 
-        if (taskList.size() > 3) {
+        // and Account has more than 3 Tasks => assign all Tasks to one User (random active User)  
+        List allAcccountTasks = [SELECT Id, Subject, WhatID from Task
+                           WHERE WhatID IN :ids];  
+        
+        if (allAcccountTasks.size() > 3) {
+            List<Task> tasksToUpdate = new List<Task>();
+            String userId = UserInfo.getUserId();
+
             for(Task t: taskList) {
                 t.OwnerId = userId;
                 tasksToUpdate.Add(t);
             }
+            
+            insert tasksToUpdate;
         }
 
-        insert tasksToUpdate;
     }
 }
