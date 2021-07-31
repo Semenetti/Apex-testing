@@ -7,28 +7,27 @@
 
 public with sharing class TaskCreator {
         
-    @InvocableMethod(label='Insert new Task', category='Task')
+    @InvocableMethod
     public static void task(List<Id> ids) {
         // 2) Apex class should make next logic: When new Account is created, 
         // create new Task object with Subject “Negotiations with {Account.Name}”, 
         // link created Account with this Task.
-        String accountName = [SELECT Name FROM Account WHERE Id in :ids];
-        String accountID = [SELECT Id FROM Account WHERE Id in :ids];
-        Task newTask = new Task(Subject='Negotiations with ' + accountName, WhatId=accountID);        
+        List<Account> account = [SELECT Name FROM Account WHERE Id in :ids];        
+        Task newTask = new Task(Subject='Negotiations with ' + account[0].name, WhatId=account[0].id);        
         insert newTask;
     
     
         // 3) If Account is updated - проверяет Process Builder в "Add Object"??    
 
         // and Account has more than 3 Tasks => assign all Tasks to one User (random active User)  
-        List allAcccountTasks = [SELECT Id, Subject, WhatID from Task
+        List<Task> allAcccountTasks = [SELECT Id, Subject, WhatID from Task
                            WHERE WhatID IN :ids];  
         
         if (allAcccountTasks.size() > 3) {
             List<Task> tasksToUpdate = new List<Task>();
             String userId = UserInfo.getUserId();
 
-            for(Task t: taskList) {
+            for(Task t: allAcccountTasks) {
                 t.OwnerId = userId;
                 tasksToUpdate.Add(t);
             }
